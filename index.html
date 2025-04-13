@@ -141,7 +141,8 @@
             async loadChapter(url) {
                 this.content.innerHTML = '<div class="loading">正在加载章节内容...</div>';
                 try {
-                    const response = await fetch(this.baseUrl + url, {
+                    const fullUrl = this.baseUrl + url;
+                    const response = await fetch(fullUrl, {
                         headers: {
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
                         }
@@ -157,7 +158,24 @@
                     window.scrollTo(0, 0);
                 } catch (error) {
                     console.error("加载章节时出错:", error);
-                    this.content.innerHTML = `<div class="error">加载章节时出错: ${error.message}</div>`;
+                    const errorDetails = {
+                        message: error.message,
+                        url: this.baseUrl + url,
+                        timestamp: new Date().toISOString(),
+                        userAgent: navigator.userAgent
+                    };
+                    
+                    this.content.innerHTML = `
+                        <div class="error">
+                            <h3>加载章节时出错</h3>
+                            <p>${error.message}</p>
+                            <div class="error-details">
+                                请求URL: ${errorDetails.url}
+                                时间: ${errorDetails.timestamp}
+                                错误类型: ${error.name}
+                                浏览器信息: ${errorDetails.userAgent}
+                            </div>
+                        </div>`;
                 }
             }
 
@@ -189,3 +207,33 @@
     </script>
 </body>
 </html>
+
+        .error {
+            color: #ff4444;
+            padding: 20px;
+            background-color: #fff8f8;
+            border: 1px solid #ffdddd;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .error-details {
+            font-family: monospace;
+            background-color: #f8f8f8;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .error h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+
+        .error p {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+        }
