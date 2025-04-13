@@ -8,15 +8,16 @@
         :root {
             --primary-color: #4a90e2;
             --text-color: #333;
-            --bg-color: #fff;
-            --content-width: min(800px, 95%);
+            --bg-color: #f5f5f5;
+            --content-width: min(800px, 90%);
+            --reader-padding: 20px;
         }
 
         body {
             font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
             margin: 0;
             padding: 0;
-            line-height: 1.6;
+            line-height: 1.8;
             color: var(--text-color);
             background-color: var(--bg-color);
         }
@@ -24,14 +25,14 @@
         .container {
             max-width: var(--content-width);
             margin: 0 auto;
-            padding: 20px;
+            padding: 10px;
         }
 
         .header {
             text-align: center;
-            padding: 20px 0;
+            padding: 15px 0;
             border-bottom: 1px solid #eee;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .header h1 {
@@ -44,7 +45,7 @@
             background: #fff;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 20px;
+            padding: var(--reader-padding);
             margin-bottom: 20px;
         }
 
@@ -52,8 +53,28 @@
             font-size: 18px;
             line-height: 1.8;
             color: var(--text-color);
-            padding: 20px;
-            min-height: 500px;
+            padding: 0 10px;
+            min-height: 60vh;
+            text-align: justify;
+            word-break: break-word;
+            hyphens: auto;
+        }
+
+        #content .chapter-title {
+            text-align: center;
+            margin-bottom: 1.5em;
+            font-size: 1.5em;
+            color: #222;
+        }
+
+        #content .chapter-content {
+            margin: 0 auto;
+            max-width: 90%;
+        }
+
+        #content p {
+            margin-bottom: 1.2em;
+            text-indent: 2em;
         }
 
         .controls {
@@ -73,6 +94,7 @@
             cursor: pointer;
             font-size: 16px;
             transition: background-color 0.2s;
+            min-width: 100px;
         }
 
         .btn:hover {
@@ -86,72 +108,11 @@
 
         .loading {
             text-align: center;
-            padding: 20px;
+            padding: 40px 20px;
             color: #666;
+            font-size: 16px;
         }
 
-        @media (max-width: 600px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .header {
-                padding: 15px 0;
-            }
-            
-            .header h1 {
-                font-size: 20px;
-            }
-            
-            .url-input-container {
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .url-input {
-                width: 100%;
-                max-width: none;
-                padding: 10px;
-                font-size: 16px;
-            }
-            
-            .reader {
-                padding: 15px;
-                margin-bottom: 15px;
-            }
-            
-            #content {
-                font-size: 16px;
-                padding: 10px;
-                line-height: 1.6;
-                min-height: 300px;
-            }
-            
-            .controls {
-                padding: 15px 0;
-            }
-            
-            .btn {
-                padding: 12px 20px;
-                font-size: 16px;
-                min-width: 100px;
-            }
-            
-            .error {
-                padding: 15px;
-                margin: 15px 0;
-                font-size: 14px;
-            }
-            
-            .error-details {
-                font-size: 12px;
-                padding: 8px;
-            }
-        }
-        .btn {
-            padding: 8px 16px;
-            font-size: 14px;
-        }
         .error {
             color: #ff4444;
             padding: 20px;
@@ -181,6 +142,97 @@
             margin: 0 0 15px 0;
             font-size: 16px;
         }
+
+        .url-input-container {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .url-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 60%;
+            max-width: 400px;
+        }
+
+        .url-input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        @media (max-width: 600px) {
+            :root {
+                --content-width: 100%;
+                --reader-padding: 10px;
+            }
+
+            .container {
+                padding: 5px;
+            }
+            
+            .header {
+                padding: 10px 0;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .url-input-container {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .url-input {
+                width: 90%;
+                max-width: none;
+                padding: 10px;
+                font-size: 16px;
+            }
+            
+            .reader {
+                padding: 10px;
+                margin-bottom: 10px;
+                border-radius: 0;
+            }
+            
+            #content {
+                font-size: 16px;
+                padding: 0 5px;
+                line-height: 1.7;
+                min-height: 70vh;
+            }
+
+            #content .chapter-content {
+                max-width: 95%;
+            }
+            
+            .controls {
+                padding: 15px 0;
+                margin-top: 15px;
+            }
+            
+            .btn {
+                padding: 12px 15px;
+                font-size: 16px;
+                min-width: 80px;
+            }
+            
+            .error {
+                padding: 15px;
+                margin: 15px 0;
+                font-size: 14px;
+            }
+            
+            .error-details {
+                font-size: 12px;
+                padding: 8px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -204,292 +256,212 @@
         </div>
     </div>
 
-    <style>
-        .url-input-container {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .url-input {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            width: 60%;
-            max-width: 400px;
-        }
-
-        .url-input:focus {
-            border-color: var(--primary-color);
-            outline: none;
-        }
-    </style>
-
     <script>
-        class NovelReader {
-            constructor() {
-                this.proxyUrls = [
-                    "https://api.allorigins.win/raw?url=",
-                    "https://cors-anywhere.herokuapp.com/",
-                    "https://api.codetabs.com/v1/proxy?quest="
-                ];
-                this.currentProxyIndex = 0;
-                this.baseUrl = "https://www.xxsy.net";
-                this.currentChapterUrl = "/chapter/3736994703450701/35542213282915035";
-                this.content = document.getElementById('content');
-                this.prevButton = document.getElementById('prevChapter');
-                this.nextButton = document.getElementById('nextChapter');
-                this.maxRetries = 3;
-                this.urlInput = document.getElementById('chapterUrl');
-                this.loadUrlButton = document.getElementById('loadUrl');
-                this.touchStartX = 0;
-                this.touchEndX = 0;
-                
-                this.initializeEventListeners();
-                this.initializeTouchEvents();
-                this.loadCurrentChapter();
+class NovelReader {
+    constructor() {
+        this.proxyUrls = [
+            "https://api.allorigins.win/raw?url=",
+            "https://cors-anywhere.herokuapp.com/",
+            "https://api.codetabs.com/v1/proxy?quest="
+        ];
+        this.currentProxyIndex = 0;
+        this.baseUrl = "https://www.txtwl.com";
+        this.currentChapterUrl = "/article_134_181251.html";
+        this.content = document.getElementById('content');
+        this.prevButton = document.getElementById('prevChapter');
+        this.nextButton = document.getElementById('nextChapter');
+        this.maxRetries = 3;
+        this.urlInput = document.getElementById('chapterUrl');
+        this.loadUrlButton = document.getElementById('loadUrl');
+        
+        this.initializeEventListeners();
+        this.loadCurrentChapter();
+    }
+
+    initializeEventListeners() {
+        this.prevButton.addEventListener('click', () => this.loadPreviousChapter());
+        this.nextButton.addEventListener('click', () => this.loadNextChapter());
+        this.loadUrlButton.addEventListener('click', () => this.loadFromUrl());
+        this.urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.loadFromUrl();
             }
+        });
+    }
 
-            initializeEventListeners() {
-                this.prevButton.addEventListener('click', () => this.loadPreviousChapter());
-                this.nextButton.addEventListener('click', () => this.loadNextChapter());
-                this.loadUrlButton.addEventListener('click', () => this.loadFromUrl());
-                this.urlInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        this.loadFromUrl();
-                    }
-                });
+    async loadChapter(url, retryCount = 0) {
+        this.content.innerHTML = '<div class="loading">正在加载章节内容...</div>';
+        try {
+            const fullUrl = url.startsWith('http') ? url : this.baseUrl + url;
+            const proxyUrl = this.proxyUrls[this.currentProxyIndex];
+            const response = await fetch(`${proxyUrl}${encodeURIComponent(fullUrl)}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-
-            initializeTouchEvents() {
-                document.addEventListener('touchstart', (e) => {
-                    this.touchStartX = e.touches[0].clientX;
-                });
-
-                document.addEventListener('touchend', (e) => {
-                    this.touchEndX = e.changedTouches[0].clientX;
-                    const swipeDistance = this.touchEndX - this.touchStartX;
-                    
-                    if (Math.abs(swipeDistance) > 100) {
-                        if (swipeDistance > 0) {
-                            this.loadPreviousChapter();
-                        } else {
-                            this.loadNextChapter();
-                        }
-                    }
-                });
+            
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            
+            // 提取章节标题
+            const title = doc.querySelector('.j_chapterName')?.textContent || '未知章节';
+            
+            // 提取正文内容
+            const contentElement = doc.querySelector('.j_readContent');
+            
+            if (!contentElement) {
+                throw new Error("无法找到正文内容，请检查页面结构");
             }
-
-            async loadChapter(url, retryCount = 0) {
-                this.content.innerHTML = '<div class="loading">正在加载章节内容...</div>';
-                try {
-                    const fullUrl = this.baseUrl + url;
-                    const proxyUrl = this.proxyUrls[this.currentProxyIndex];
-                    const response = await fetch(`${proxyUrl}${encodeURIComponent(fullUrl)}`);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const text = await response.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(text, 'text/html');
-                    
-                    const title = doc.querySelector('h1')?.textContent || doc.querySelector('.chapter-title')?.textContent || '未知章节';
-                    const contentElement = doc.querySelector('main#content') || doc.querySelector('.chapter-content');
-                    
-                    if (!contentElement) {
-                        throw new Error("无法找到正文内容，请检查页面结构");
-                    }
-                    
-                    const paragraphs = Array.from(contentElement.querySelectorAll('p, div.p'))
-                        .map(p => p.textContent.trim())
-                        .filter(text => text.length > 0);
-                    
-                    if (paragraphs.length === 0) {
-                        throw new Error("无法解析章节内容");
-                    }
-                    
-                    const content = `
-                        <h1 class="chapter-title">${title}</h1>
-                        <div class="chapter-content">
-                            ${paragraphs.map(p => `<p>${p}</p>`).join('')}
-                        </div>
-                    `;
-                    
-                    this.content.innerHTML = content;
-                    this.currentChapterUrl = url;
-                    this.updateNavigationButtons();
-                    window.scrollTo(0, 0);
-                } catch (error) {
-                    console.error("加载章节时出错:", error);
-                    
-                    if (retryCount < this.maxRetries) {
-                        console.log(`重试第 ${retryCount + 1} 次...`);
-                        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-                        return this.loadChapter(url, retryCount + 1);
-                    }
-                    
-                    const errorDetails = {
-                        message: error.message,
-                        url: this.baseUrl + url,
-                        timestamp: new Date().toISOString(),
-                        userAgent: navigator.userAgent,
-                        retryCount: retryCount
-                    };
-                    
-                    this.content.innerHTML = `
-                        <div class="error">
-                            <h3>加载章节时出错</h3>
-                            <p>${error.message}</p>
-                            <div class="error-details">
-                                请求URL: ${errorDetails.url}
-                                时间: ${errorDetails.timestamp}
-                                错误类型: ${error.name}
-                                重试次数: ${errorDetails.retryCount}
-                                浏览器信息: ${errorDetails.userAgent}
-                            </div>
-                        </div>`;
-                }
+            
+            // 克隆内容元素以避免修改原始DOM
+            const contentClone = contentElement.cloneNode(true);
+            
+            // 移除不需要的元素
+            const elementsToRemove = contentClone.querySelectorAll('.admire-wrap, .report-btn');
+            elementsToRemove.forEach(el => el.remove());
+            
+            const content = `
+                <h1 class="chapter-title">${title}</h1>
+                <div class="chapter-content">
+                    ${contentClone.innerHTML}
+                </div>
+            `;
+            
+            this.content.innerHTML = content;
+            this.currentChapterUrl = url;
+            this.updateNavigationButtons();
+            window.scrollTo(0, 0);
+        } catch (error) {
+            console.error("加载章节时出错:", error);
+            
+            if (retryCount < this.maxRetries) {
+                console.log(`重试第 ${retryCount + 1} 次...`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+                return this.loadChapter(url, retryCount + 1);
             }
+            
+            const errorDetails = {
+                message: error.message,
+                url: this.baseUrl + url,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                retryCount: retryCount
+            };
+            
+            this.content.innerHTML = `
+                <div class="error">
+                    <h3>加载章节时出错</h3>
+                    <p>${error.message}</p>
+                    <div class="error-details">
+                        请求URL: ${errorDetails.url}
+                        时间: ${errorDetails.timestamp}
+                        错误类型: ${error.name}
+                        重试次数: ${errorDetails.retryCount}
+                        浏览器信息: ${errorDetails.userAgent}
+                    </div>
+                </div>`;
+        }
+    }
 
-            loadCurrentChapter() {
-                this.loadChapter(this.currentChapterUrl);
-            }
+    loadCurrentChapter() {
+        this.loadChapter(this.currentChapterUrl);
+    }
 
-            async loadPreviousChapter() {
+    async loadPreviousChapter() {
+        this.prevButton.disabled = true;
+        this.content.innerHTML = '<div class="loading">正在加载上一章...</div>';
+        try {
+            const fullUrl = this.currentChapterUrl.startsWith('http') 
+                ? this.currentChapterUrl 
+                : this.baseUrl + this.currentChapterUrl;
+            const proxyUrl = this.proxyUrls[this.currentProxyIndex];
+            const response = await fetch(`${proxyUrl}${encodeURIComponent(fullUrl)}`);
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            
+            console.log('正在查找上一章链接...');
+            const prevLink = doc.querySelector('.chapter-control a:first-child');
+            if (prevLink && prevLink.getAttribute('href') && !prevLink.getAttribute('href').startsWith('javascript:')) {
+                console.log('找到上一章链接:', prevLink.getAttribute('href'));
+                this.loadChapter(prevLink.getAttribute('href'));
+            } else {
+                console.log('没有找到有效的上一章链接');
                 this.prevButton.disabled = true;
-                this.content.innerHTML = '<div class="loading">正在加载上一章...</div>';
-                try {
-                    const response = await fetch(`${this.proxyUrls[this.currentProxyIndex]}${encodeURIComponent(this.baseUrl + this.currentChapterUrl)}`);
-                    const text = await response.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(text, 'text/html');
-                    
-                    console.log('正在查找上一章链接...');
-                    const prevLink = doc.querySelector('#r-breadcrumbs + div nav a[href*="/chapter/"], #reader-content nav a[href*="/chapter/"]');
-                    if (prevLink && prevLink.getAttribute('href')) {
-                        console.log('找到上一章链接:', prevLink.getAttribute('href'));
-                        this.loadChapter(prevLink.getAttribute('href'));
-                    } else {
-                        console.log('没有找到上一章链接');
-                        this.prevButton.disabled = true;
-                        this.content.innerHTML = '<div class="error"><h3>无法加载上一章</h3><p>已经是第一章或无法找到上一章链接</p></div>';
-                    }
-                } catch (error) {
-                    console.error('获取上一章链接失败:', error);
-                    this.prevButton.disabled = true;
-                    this.content.innerHTML = `<div class="error"><h3>加载失败</h3><p>获取上一章链接时出错: ${error.message}</p></div>`;
-                }
+                this.content.innerHTML = '<div class="error"><h3>无法加载上一章</h3><p>已经是第一章或无法找到上一章链接</p></div>';
             }
+        } catch (error) {
+            console.error('获取上一章链接失败:', error);
+            this.prevButton.disabled = true;
+            this.content.innerHTML = `<div class="error"><h3>加载失败</h3><p>获取上一章链接时出错: ${error.message}</p></div>`;
+        }
+    }
 
-            async loadNextChapter() {
+    async loadNextChapter() {
+        this.nextButton.disabled = true;
+        this.content.innerHTML = '<div class="loading">正在加载下一章...</div>';
+        try {
+            const fullUrl = this.currentChapterUrl.startsWith('http') 
+                ? this.currentChapterUrl 
+                : this.baseUrl + this.currentChapterUrl;
+            const proxyUrl = this.proxyUrls[this.currentProxyIndex];
+            const response = await fetch(`${proxyUrl}${encodeURIComponent(fullUrl)}`);
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            
+            console.log('正在查找下一章链接...');
+            const nextLink = doc.querySelector('.chapter-control a:last-child');
+            if (nextLink && nextLink.getAttribute('href') && !nextLink.getAttribute('href').startsWith('javascript:')) {
+                console.log('找到下一章链接:', nextLink.getAttribute('href'));
+                this.loadChapter(nextLink.getAttribute('href'));
+            } else {
+                console.log('没有找到有效的下一章链接');
                 this.nextButton.disabled = true;
-                this.content.innerHTML = '<div class="loading">正在加载下一章...</div>';
-                try {
-                    const response = await fetch(`${this.proxyUrls[this.currentProxyIndex]}${encodeURIComponent(this.baseUrl + this.currentChapterUrl)}`);
-                    const text = await response.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(text, 'text/html');
-                    
-                    console.log('正在查找下一章链接...');
-                    const nextLink = doc.querySelector('a[href*="/chapter/"]');
-                    if (nextLink && nextLink.getAttribute('href')) {
-                        const href = nextLink.getAttribute('href');
-                        if (href.includes('下一章') || nextLink.textContent.includes('下一章')) {
-                            console.log('找到下一章链接:', href);
-                            this.loadChapter(href);
-                        } else {
-                            console.log('找到链接但不是下一章');
-                            this.nextButton.disabled = true;
-                            this.content.innerHTML = '<div class="error"><h3>无法加载下一章</h3><p>未找到有效的下一章链接</p></div>';
-                        }
-                    } else {
-                        console.log('没有找到下一章链接');
-                        this.nextButton.disabled = true;
-                        this.content.innerHTML = '<div class="error"><h3>无法加载下一章</h3><p>已经是最后一章或无法找到下一章链接</p></div>';
-                    }
-                } catch (error) {
-                    console.error('获取下一章链接失败:', error);
-                    this.nextButton.disabled = true;
-                    this.content.innerHTML = `<div class="error"><h3>加载失败</h3><p>获取下一章链接时出错: ${error.message}</p></div>`;
-                }
+                this.content.innerHTML = '<div class="error"><h3>无法加载下一章</h3><p>已经是最后一章或无法找到下一章链接</p></div>';
             }
+        } catch (error) {
+            console.error('获取下一章链接失败:', error);
+            this.nextButton.disabled = true;
+            this.content.innerHTML = `<div class="error"><h3>加载失败</h3><p>获取下一章链接时出错: ${error.message}</p></div>`;
+        }
+    }
 
-            updateNavigationButtons() {
-                this.prevButton.disabled = false;
-                this.nextButton.disabled = false;
-            }
+    updateNavigationButtons() {
+        this.prevButton.disabled = false;
+        this.nextButton.disabled = false;
+    }
 
-            loadFromUrl() {
-                const url = this.urlInput.value.trim();
-                if (!url) {
-                    this.content.innerHTML = `<div class="error"><h3>输入错误</h3><p>请输入有效的章节URL</p></div>`;
-                    return;
-                }
-
-                try {
-                    const urlObj = new URL(url);
-                    if (!urlObj.pathname.includes('/chapter/')) {
-                        throw new Error('无效的章节URL，URL必须包含 /chapter/');
-                    }
-                    const chapterPath = urlObj.pathname;
-                    this.loadChapter(chapterPath);
-                } catch (error) {
-                    this.content.innerHTML = `
-                        <div class="error">
-                            <h3>URL格式错误</h3>
-                            <p>${error.message}</p>
-                            <div class="error-details">请输入完整的章节URL，例如：https://www.xxsy.net/chapter/xxx/xxx</div>
-                        </div>`;
-                }
-            }
-            async loadNextChapter() {
-                this.nextButton.disabled = true;
-                this.content.innerHTML = '<div class="loading">正在加载下一章...</div>';
-                try {
-                    const response = await fetch(`${this.proxyUrls[this.currentProxyIndex]}${encodeURIComponent(this.baseUrl + this.currentChapterUrl)}`);
-                    const text = await response.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(text, 'text/html');
-                    
-                    console.log('正在查找下一章链接...');
-                    const nextLink = doc.querySelector('a[href*="/chapter/"]');
-                    if (nextLink && nextLink.getAttribute('href')) {
-                        const href = nextLink.getAttribute('href');
-                        if (href.includes('下一章') || nextLink.textContent.includes('下一章')) {
-                            console.log('找到下一章链接:', href);
-                            this.loadChapter(href);
-                        } else {
-                            console.log('找到链接但不是下一章');
-                            this.nextButton.disabled = true;
-                            this.content.innerHTML = '<div class="error"><h3>无法加载下一章</h3><p>未找到有效的下一章链接</p></div>';
-                        }
-                    } else {
-                        console.log('没有找到下一章链接');
-                        this.nextButton.disabled = true;
-                        this.content.innerHTML = '<div class="error"><h3>无法加载下一章</h3><p>已经是最后一章或无法找到下一章链接</p></div>';
-                    }
-                } catch (error) {
-                    console.error('获取下一章链接失败:', error);
-                    this.nextButton.disabled = true;
-                    this.content.innerHTML = `<div class="error"><h3>加载失败</h3><p>获取下一章链接时出错: ${error.message}</p></div>`;
-                }
-            }
-            updateNavigationButtons() {
-                this.prevButton.disabled = false;
-                this.nextButton.disabled = false;
-            }
-
-
+    loadFromUrl() {
+        const url = this.urlInput.value.trim();
+        if (!url) {
+            this.content.innerHTML = `<div class="error"><h3>输入错误</h3><p>请输入有效的章节URL</p></div>`;
+            return;
         }
 
-        // Initialize the novel reader when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            window.novelReader = new NovelReader();
-        });
+        try {
+            const urlObj = new URL(url);
+            if (!urlObj.pathname.includes('/article_')) {
+                throw new Error('无效的章节URL，URL必须包含 /article_');
+            }
+            const chapterPath = urlObj.pathname + (urlObj.search || '');
+            this.loadChapter(chapterPath);
+        } catch (error) {
+            this.content.innerHTML = `
+                <div class="error">
+                    <h3>URL格式错误</h3>
+                    <p>${error.message}</p>
+                    <div class="error-details">请输入完整的章节URL，例如：https://www.txtwl.com/article_xxx_xxx.html</div>
+                </div>`;
+        }
+    }
+}
+
+// Initialize the novel reader when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    window.novelReader = new NovelReader();
+});
     </script>
 </body>
 </html>
