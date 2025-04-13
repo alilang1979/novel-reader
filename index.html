@@ -139,45 +139,37 @@
             }
 
             async loadChapter(url) {
-                this.content.innerHTML = '<div class="loading">正在加载章节内容...</div>';
-                try {
-                    const fullUrl = this.baseUrl + url;
-                    const response = await fetch(fullUrl, {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-                        }
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const text = await response.text();
-                    this.content.innerHTML = text;
-                    this.updateNavigationButtons();
-                    window.scrollTo(0, 0);
-                } catch (error) {
-                    console.error("加载章节时出错:", error);
-                    const errorDetails = {
-                        message: error.message,
-                        url: this.baseUrl + url,
-                        timestamp: new Date().toISOString(),
-                        userAgent: navigator.userAgent
-                    };
-                    
-                    this.content.innerHTML = `
-                        <div class="error">
-                            <h3>加载章节时出错</h3>
-                            <p>${error.message}</p>
-                            <div class="error-details">
-                                请求URL: ${errorDetails.url}
-                                时间: ${errorDetails.timestamp}
-                                错误类型: ${error.name}
-                                浏览器信息: ${errorDetails.userAgent}
-                            </div>
-                        </div>`;
-                }
+    this.content.innerHTML = '<div class="loading">正在加载章节内容...</div>';
+    try {
+        const proxyUrl = 'https://api.allorigins.win/get?url='; // 另一个CORS代理
+        const encodedUrl = encodeURIComponent(this.baseUrl + url);
+        const response = await fetch(proxyUrl + encodedUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
             }
+        });
+        
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data = await response.json();
+        this.content.innerHTML = data.contents || "无法解析内容";
+        this.updateNavigationButtons();
+        window.scrollTo(0, 0);
+    } catch (error) {
+        console.error("加载章节时出错:", error);
+        this.content.innerHTML = `
+            <div class="error">
+                <h3>加载章节时出错</h3>
+                <p>${error.message}</p>
+                <div class="error-details">
+                    请求URL: ${this.baseUrl + url}<br>
+                    时间: ${new Date().toISOString()}<br>
+                    错误类型: ${error.name}<br>
+                    浏览器信息: ${navigator.userAgent}
+                </div>
+            </div>`;
+    }
+}
 
             loadCurrentChapter() {
                 this.loadChapter(this.currentChapterUrl);
