@@ -143,14 +143,41 @@
                 this.content.innerHTML = '<div class="loading">正在加载章节内容...</div>';
                 try {
                     const fullUrl = this.baseUrl + url;
-                    const response = await fetch(`${this.proxyUrl}?url=${encodeURIComponent(fullUrl)}`);
+                    const response = await fetch(`${this.proxyUrl}${encodeURIComponent(fullUrl)}`);
                     
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     
                     const text = await response.text();
-                    this.content.innerHTML = text;
+                    
+                    // 创建一个临时的DOM解析器
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(text, 'text/html');
+                    
+                    // 查找正文内容
+                    const contentElement = doc.querySelector('#content');
+                    if (!contentElement) {
+                        throw new Error("无法找到正文内容");
+                    }
+                    
+                    // 提取标题和正文
+                    const title = contentElement.querySelector('h1')?.textContent || '';
+                    const paragraphs = Array.from(contentElement.querySelectorAll('p')).map(p => p.textContent);
+                    
+                    if (!title || paragraphs.length === 0) {
+                        throw new Error("无法解析章节内容");
+                    }
+                    
+                    // 构建HTML内容
+                    const content = `
+                        <h1 class="chapter-title">${title}</h1>
+                        <div class="chapter-content">
+                            ${paragraphs.map(p => `<p>${p}</p>`).join('')}
+                        </div>
+                    `;
+                    
+                    this.content.innerHTML = content;
                     this.updateNavigationButtons();
                     window.scrollTo(0, 0);
                 } catch (error) {
