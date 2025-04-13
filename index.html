@@ -129,6 +129,7 @@
                 this.content = document.getElementById('content');
                 this.prevButton = document.getElementById('prevChapter');
                 this.nextButton = document.getElementById('nextChapter');
+                this.maxRetries = 3;
                 
                 this.initializeEventListeners();
                 this.loadCurrentChapter();
@@ -139,7 +140,7 @@
                 this.nextButton.addEventListener('click', () => this.loadNextChapter());
             }
 
-            async loadChapter(url) {
+            async loadChapter(url, retryCount = 0) {
                 this.content.innerHTML = '<div class="loading">正在加载章节内容...</div>';
                 try {
                     const fullUrl = this.baseUrl + url;
@@ -151,25 +152,21 @@
                     
                     const text = await response.text();
                     
-                    // 创建一个临时的DOM解析器
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(text, 'text/html');
                     
-                    // 查找正文内容
                     const contentElement = doc.querySelector('#content');
                     if (!contentElement) {
                         throw new Error("无法找到正文内容");
                     }
                     
-                    // 提取标题和正文
-                    const title = contentElement.querySelector('h1')?.textContent || '';
-                    const paragraphs = Array.from(contentElement.querySelectorAll('p')).map(p => p.textContent);
+                    const title = doc.querySelector('h1.chapter-title')?.textContent || doc.querySelector('h1')?.textContent || '';
+                    const paragraphs = Array.from(contentElement.querySelectorAll('p')).map(p => p.textContent.trim()).filter(text => text.length > 0);
                     
                     if (!title || paragraphs.length === 0) {
                         throw new Error("无法解析章节内容");
                     }
                     
-                    // 构建HTML内容
                     const content = `
                         <h1 class="chapter-title">${title}</h1>
                         <div class="chapter-content">
@@ -182,11 +179,19 @@
                     window.scrollTo(0, 0);
                 } catch (error) {
                     console.error("加载章节时出错:", error);
+                    
+                    if (retryCount < this.maxRetries) {
+                        console.log(`重试第 ${retryCount + 1} 次...`);
+                        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+                        return this.loadChapter(url, retryCount + 1);
+                    }
+                    
                     const errorDetails = {
                         message: error.message,
                         url: this.baseUrl + url,
                         timestamp: new Date().toISOString(),
-                        userAgent: navigator.userAgent
+                        userAgent: navigator.userAgent,
+                        retryCount: retryCount
                     };
                     
                     this.content.innerHTML = `
@@ -197,6 +202,7 @@
                                 请求URL: ${errorDetails.url}
                                 时间: ${errorDetails.timestamp}
                                 错误类型: ${error.name}
+                                重试次数: ${errorDetails.retryCount}
                                 浏览器信息: ${errorDetails.userAgent}
                             </div>
                         </div>`;
