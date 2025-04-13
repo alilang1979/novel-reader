@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小说阅读器</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --text-color: #333;
+            --bg-color: #fff;
+            --content-width: min(800px, 95%);
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+        }
+
+        .container {
+            max-width: var(--content-width);
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 24px;
+        }
+
+        .reader {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        #content {
+            font-size: 18px;
+            line-height: 1.8;
+            color: var(--text-color);
+            padding: 20px;
+            min-height: 500px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 0;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #357abd;
+        }
+
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        @media (max-width: 600px) {
+            #content {
+                font-size: 16px;
+                padding: 15px;
+            }
+
+            .btn {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>小说阅读器</h1>
+        </div>
+        
+        <div class="reader">
+            <div id="content">
+                <div class="loading">正在加载章节内容...</div>
+            </div>
+            <div class="controls">
+                <button id="prevChapter" class="btn" disabled>上一章</button>
+                <button id="nextChapter" class="btn" disabled>下一章</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NovelReader {
+            constructor() {
+                this.baseUrl = "https://www.xxsy.net";
+                this.currentChapterUrl = "/chapter/3736994703450701/35542213282915035";
+                this.content = document.getElementById('content');
+                this.prevButton = document.getElementById('prevChapter');
+                this.nextButton = document.getElementById('nextChapter');
+                
+                this.initializeEventListeners();
+                this.loadCurrentChapter();
+            }
+
+            initializeEventListeners() {
+                this.prevButton.addEventListener('click', () => this.loadPreviousChapter());
+                this.nextButton.addEventListener('click', () => this.loadNextChapter());
+            }
+
+            async loadChapter(url) {
+                this.content.innerHTML = '<div class="loading">正在加载章节内容...</div>';
+                try {
+                    const response = await fetch(this.baseUrl + url, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const text = await response.text();
+                    this.content.innerHTML = text;
+                    this.updateNavigationButtons();
+                    window.scrollTo(0, 0);
+                } catch (error) {
+                    console.error("加载章节时出错:", error);
+                    this.content.innerHTML = `<div class="error">加载章节时出错: ${error.message}</div>`;
+                }
+            }
+
+            loadCurrentChapter() {
+                this.loadChapter(this.currentChapterUrl);
+            }
+
+            loadPreviousChapter() {
+                // TODO: Implement previous chapter navigation
+                console.log("加载上一章");
+            }
+
+            loadNextChapter() {
+                // TODO: Implement next chapter navigation
+                console.log("加载下一章");
+            }
+
+            updateNavigationButtons() {
+                // TODO: Update button states based on chapter availability
+                this.prevButton.disabled = false;
+                this.nextButton.disabled = false;
+            }
+        }
+
+        // Initialize the novel reader when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.novelReader = new NovelReader();
+        });
+    </script>
+</body>
+</html>
