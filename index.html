@@ -272,7 +272,7 @@ class NovelReader {
             {
                 name: 'xxsy',
                 baseUrl: 'https://www.xxsy.net',
-                urlPattern: /xxsy\.net\/chapter/,
+                urlPattern: /(?:www\.|m\.)?xxsy\.net\/chapter/,
                 selectors: {
                     title: 'h1, .chapter-title',
                     content: 'main#content, .chapter-content',
@@ -288,7 +288,7 @@ class NovelReader {
             {
                 name: 'txtwl',
                 baseUrl: 'https://www.txtwl.com',
-                urlPattern: /txtwl\.com\/article/,
+                urlPattern: /(?:www\.|m\.)?txtwl\.com\/article/,
                 selectors: {
                     title: '.j_chapterName',
                     content: '.j_readContent',
@@ -364,13 +364,16 @@ class NovelReader {
             let urlObj;
             if (url.startsWith('http')) {
                 urlObj = new URL(url);
+                // 统一将移动端 URL 转换为 www
+                urlObj.hostname = urlObj.hostname.replace(/^m\./, 'www.');
+                
                 const config = this.siteConfigs.find(cfg => cfg.urlPattern.test(urlObj.href));
                 if (!config) {
                     throw new Error('不支持的网站格式，当前支持：' + 
                         this.siteConfigs.map(c => c.name).join(', '));
                 }
                 this.currentConfig = config;
-                this.loadChapter(urlObj.href);  // 修改：使用完整URL
+                this.loadChapter(urlObj.href);
             } else {
                 // 处理相对路径
                 if (url.match(/article_\d+_\d+\.html/)) {
