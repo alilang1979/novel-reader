@@ -250,6 +250,7 @@
                 <div class="loading">正在加载章节内容...</div>
             </div>
             <div class="controls">
+                <button id="ttsButton" class="btn" disabled>朗读</button>
                 <button id="prevChapter" class="btn" disabled>上一章</button>
                 <button id="nextChapter" class="btn" disabled>下一章</button>
             </div>
@@ -480,6 +481,7 @@ class NovelReader {
             this.content.innerHTML = content;
             this.currentChapterUrl = urlObj.pathname;
             this.updateNavigationButtons();
+            this.ttsButton.disabled = false;  // 启用朗读按钮
             window.scrollTo(0, 0);
         } catch (error) {
             console.error("加载章节时出错:", error);
