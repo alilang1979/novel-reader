@@ -315,7 +315,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>小说阅读器</h1>
+            <h1>小说阅读器 <span class="version">v1.0.1</span></h1>
             <div class="url-input-container">
                 <input type="text" id="chapterUrl" placeholder="请输入章节URL" class="url-input">
                 <button id="loadUrl" class="btn">加载章节</button>
@@ -776,36 +776,63 @@ class NovelReader {
             return;
         }
 
-        this.isReading = true;
-        this.ttsButton.textContent = '停止';
-        
-        let currentIndex = 0;
-        const readParagraph = (index) => {
-            if (!this.isReading || index >= paragraphs.length) {
-                if (this.isReading) {
-                    this.loadNextChapter().then(() => {
-                        setTimeout(() => this.startReading(), 1000);
-                    });
+        try {
+            // 确保停止之前的朗读
+            this.stopReading();
+            
+            this.isReading = true;
+            this.ttsButton.textContent = '停止';
+            
+            let currentIndex = 0;
+            const readParagraph = (index) => {
+                if (!this.isReading || index >= paragraphs.length) {
+                    if (this.isReading) {
+                        this.loadNextChapter().then(() => {
+                            setTimeout(() => this.startReading(), 1000);
+                        });
+                    }
+                    return;
                 }
-                return;
-            }
 
-            const paragraph = paragraphs[index];
-            paragraph.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            const utterance = new SpeechSynthesisUtterance(paragraph.textContent);
-            utterance.lang = 'zh-CN';
-            utterance.rate = parseFloat(document.getElementById('readingRate').value) || 1.0;
-            
-            utterance.onend = () => {
-                currentIndex++;
-                readParagraph(currentIndex);
+                const paragraph = paragraphs[index];
+                // 高亮当前段落
+                paragraph.style.backgroundColor = '#f0f0f0';
+                if (index > 0) {
+                    paragraphs[index - 1].style.backgroundColor = '';
+                }
+                
+                paragraph.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                const utterance = new SpeechSynthesisUtterance(paragraph.textContent);
+                utterance.lang = 'zh-CN';
+                utterance.rate = this.readingRate;
+                
+                utterance.onend = () => {
+                    currentIndex++;
+                    readParagraph(currentIndex);
+                };
+                
+                utterance.onerror = (event) => {
+                    console.error('TTS错误:', event);
+                    this.showError(`朗读出错: ${event.error}`);
+                    this.stopReading();
+                };
+                
+                // 确保语音合成服务处于活动状态
+                if (this.speechSynthesis.paused) {
+                    this.speechSynthesis.resume();
+                }
+                
+                this.speechSynthesis.speak(utterance);
+                console.log('开始朗读段落:', paragraph.textContent.slice(0, 50) + '...');
             };
-            
-            this.speechSynthesis.speak(utterance);
-        };
 
-        readParagraph(0);
+            readParagraph(0);
+        } catch (error) {
+            console.error('朗读错误:', error);
+            this.showError(`启动朗读失败: ${error.message}`);
+            this.stopReading();
+        }
     }
 
     stopReading() {
@@ -813,6 +840,12 @@ class NovelReader {
         if (this.speechSynthesis) {
             this.speechSynthesis.cancel();
         }
+        
+        // 清除所有段落的高亮
+        document.querySelectorAll('.chapter-content p').forEach(p => {
+            p.style.backgroundColor = '';
+        });
+        
         this.ttsButton.textContent = '朗读';
     }
 
