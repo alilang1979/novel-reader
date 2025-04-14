@@ -652,7 +652,7 @@ class NovelReader {
         }
     }
 
-    startReading() {
+    async startReading() {
         if (!this.speechSynthesis) return;
         
         // 添加：请求屏幕保持唤醒
@@ -683,7 +683,7 @@ class NovelReader {
             
             const utterance = new SpeechSynthesisUtterance(paragraph.textContent);
             utterance.lang = 'zh-CN';
-            utterance.rate = this.readingRate;  // 设置语速
+            utterance.rate = this.readingRate;
             utterance.onend = () => readParagraph(index + 1);
             
             this.speechSynthesis.speak(utterance);
