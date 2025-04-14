@@ -78,11 +78,64 @@
         }
 
         .controls {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: var(--content-width);
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
             display: flex;
             justify-content: space-between;
-            padding: 20px 0;
             border-top: 1px solid #eee;
-            margin-top: 20px;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        @media (max-width: 600px) {
+            .controls {
+                transform: translate(-50%, 100%);  /* 默认隐藏 */
+            }
+            
+            .controls.show {
+                transform: translate(-50%, 0);  /* 显示时的状态 */
+            }
+            
+            /* 添加触摸区域 */
+            .touch-area {
+                display: none;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 20px;
+                background: linear-gradient(transparent, rgba(0,0,0,0.1));
+                z-index: 99;
+            }
+            
+            @media (max-width: 600px) {
+                .touch-area {
+                    display: block;
+                }
+            }
+        }
+
+        /* 添加底部间距，防止内容被固定按钮遮挡 */
+        .reader {
+            margin-bottom: 80px;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 600px) {
+            .controls {
+                width: 100%;
+                padding: 10px;
+            }
+            
+            .reader {
+                margin-bottom: 70px;
+            }
         }
 
         .tts-controls {
@@ -273,6 +326,7 @@
             <div id="content">
                 <div class="loading">正在加载章节内容...</div>
             </div>
+            <div class="touch-area"></div>
             <div class="controls">
                 <div class="tts-controls">
                     <button id="ttsButton" class="btn" disabled>朗读</button>
@@ -356,18 +410,76 @@ class NovelReader {
         this.loadUrlButton = document.getElementById('loadUrl');
         this.ttsButton = document.getElementById('ttsButton');
         this.isReading = false;
-        this.readingRate = 1.0;  // 添加：默认语速
+        this.readingRate = 1.0;
         
         // 检查系统 TTS 支持
-        if ('speechSynthesis' in window) {
+        if ('speechSynthesis' in window && this.ttsButton) {
             this.speechSynthesis = window.speechSynthesis;
             this.ttsButton.disabled = false;
+            
+            // 添加：处理页面可见性变化
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    this.speechSynthesis.pause();
+                } else {
+                    this.speechSynthesis.resume();
+                }
+            });
         }
         
         this.initializeEventListeners();
         this.wakeLock = null;  // 添加：屏幕唤醒锁
         
         this.initializeEventListeners();
+        this.wakeLock = null;
+        
+        // 添加：移动端控制栏显示控制
+        this.setupMobileControls();
+    }
+
+    setupMobileControls() {
+        const controls = document.querySelector('.controls');
+        const touchArea = document.querySelector('.touch-area');
+        let touchStartY = 0;
+        let hideTimeout;
+
+        // 点击触摸区域显示控制栏
+        touchArea.addEventListener('click', () => {
+            controls.classList.add('show');
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+                if (!this.isReading) {  // 不在朗读时才自动隐藏
+                    controls.classList.remove('show');
+                }
+            }, 3000);  // 3秒后自动隐藏
+        });
+
+        // 点击内容区域时也显示控制栏
+        this.content.addEventListener('click', () => {
+            controls.classList.add('show');
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+                if (!this.isReading) {
+                    controls.classList.remove('show');
+                }
+            }, 3000);
+        });
+
+        // 开始朗读时保持控制栏显示
+        const originalStartReading = this.startReading.bind(this);
+        this.startReading = async () => {
+            controls.classList.add('show');
+            await originalStartReading();
+        };
+
+        // 停止朗读时允许控制栏隐藏
+        const originalStopReading = this.stopReading.bind(this);
+        this.stopReading = () => {
+            originalStopReading();
+            hideTimeout = setTimeout(() => {
+                controls.classList.remove('show');
+            }, 3000);
+        };
     }
 
     initializeEventListeners() {
@@ -685,6 +797,15 @@ class NovelReader {
             utterance.lang = 'zh-CN';
             utterance.rate = this.readingRate;
             utterance.onend = () => readParagraph(index + 1);
+            utterance.onerror = (event) => {
+                console.error('TTS错误:', event);
+                this.stopReading();
+            };
+            
+            // 添加：确保语音合成服务处于活动状态
+            if (this.speechSynthesis.paused) {
+                this.speechSynthesis.resume();
+            }
             
             this.speechSynthesis.speak(utterance);
         };
@@ -694,7 +815,15 @@ class NovelReader {
 
     stopReading() {
         this.isReading = false;
-        this.speechSynthesis.cancel();
+        if (this.speechSynthesis) {
+            this.speechSynthesis.cancel();
+            // 添加：确保语音合成服务重置
+            setTimeout(() => {
+                if (this.speechSynthesis.speaking) {
+                    this.speechSynthesis.cancel();
+                }
+            }, 100);
+        }
         this.ttsButton.textContent = '朗读';
         
         // 添加：释放屏幕唤醒锁
