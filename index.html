@@ -315,7 +315,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>小说阅读器 <span class="version">v1.0.4</span></h1>
+            <h1>小说阅读器 <span class="version">v1.0.41</span></h1>
             <div class="url-input-container">
                 <input type="text" id="chapterUrl" placeholder="请输入章节URL" class="url-input">
                 <button id="loadUrl" class="btn">加载章节</button>
@@ -784,21 +784,28 @@ class NovelReader {
             // 确保停止之前的朗读并重置状态
             this.stopReading();
             this.speechSynthesis.cancel();
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // 增加等待时间
+            await new Promise(resolve => setTimeout(resolve, 300));
             
             this.isReading = true;
             this.ttsButton.textContent = '停止';
             this.ttsButton.style.backgroundColor = '#ff4444';
             
-            let currentIndex = this.currentReadingIndex || 0;  // 修改：添加默认值
+            let currentIndex = this.currentReadingIndex || 0;
             const readParagraph = (index) => {
-                if (!this.isReading || index >= paragraphs.length) {
+                if (!this.isReading) {
+                    this.stopReading();
+                    return;
+                }
+
+                // 添加：检查是否到达末尾
+                if (index >= paragraphs.length) {
+                    console.log('已读完所有段落');
                     this.stopReading();
                     return;
                 }
 
                 const paragraph = paragraphs[index];
-                // 修改：添加安全检查
                 if (!paragraph || !paragraph.textContent) {
                     console.log('无效段落，跳过:', index);
                     currentIndex++;
@@ -807,8 +814,6 @@ class NovelReader {
                 }
 
                 const text = paragraph.textContent.trim();
-                
-                // 检查文本是否为空
                 if (!text) {
                     console.log('跳过空段落:', index);
                     currentIndex++;
@@ -828,14 +833,16 @@ class NovelReader {
                 utterance.lang = 'zh-CN';
                 utterance.rate = this.readingRate;
                 
+                // 添加：设置音量和音调
+                utterance.volume = 1;
+                utterance.pitch = 1;
+                
                 // 使用选择的语音
-                const voiceSelect = document.getElementById('voiceSelect');
-                if (voiceSelect && voiceSelect.value) {
-                    const selectedVoice = this.speechSynthesis.getVoices()
-                        .find(voice => voice.name === voiceSelect.value);
-                    if (selectedVoice) {
-                        utterance.voice = selectedVoice;
-                    }
+                const voices = this.speechSynthesis.getVoices();
+                const chineseVoice = voices.find(voice => 
+                    voice.lang.includes('zh') || voice.lang.includes('cmn'));
+                if (chineseVoice) {
+                    utterance.voice = chineseVoice;
                 }
                 
                 utterance.onstart = () => {
@@ -845,16 +852,22 @@ class NovelReader {
                 
                 utterance.onend = () => {
                     console.log('完成朗读段落:', index + 1);
-                    currentIndex++;
-                    readParagraph(currentIndex);
+                    if (this.isReading) {  // 添加：检查是否仍在朗读状态
+                        currentIndex++;
+                        setTimeout(() => readParagraph(currentIndex), 100);  // 添加延迟
+                    }
                 };
                 
                 utterance.onerror = (event) => {
                     console.error('TTS错误:', event);
-                    // 如果是中断错误，尝试重新开始当前段落
-                    if (event.error === 'interrupted' && this.isReading) {
+                    if (event.error === 'canceled' && !this.isReading) {
+                        console.log('用户手动停止朗读');
+                        return;
+                    }
+                    // 如果是其他错误，尝试重新开始当前段落
+                    if (this.isReading) {
                         console.log('尝试重新朗读当前段落');
-                        setTimeout(() => readParagraph(index), 100);
+                        setTimeout(() => readParagraph(index), 300);
                         return;
                     }
                     this.showError(`朗读出错: ${event.error}`);
