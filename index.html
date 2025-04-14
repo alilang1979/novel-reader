@@ -765,21 +765,21 @@ class NovelReader {
     }
 
     async startReading() {
-        if (!this.speechSynthesis) return;
-        
-        // 添加：请求屏幕保持唤醒
-        try {
-            this.wakeLock = await navigator.wakeLock.request('screen');
-        } catch (err) {
-            console.log('无法保持屏幕唤醒:', err);
+        if (!this.speechSynthesis) {
+            this.showError('您的浏览器不支持语音合成');
+            return;
         }
 
         const paragraphs = Array.from(document.querySelectorAll('.chapter-content p'));
-        if (paragraphs.length === 0) return;
+        if (paragraphs.length === 0) {
+            this.showError('没有找到可朗读的内容');
+            return;
+        }
 
         this.isReading = true;
         this.ttsButton.textContent = '停止';
         
+        let currentIndex = 0;
         const readParagraph = (index) => {
             if (!this.isReading || index >= paragraphs.length) {
                 if (this.isReading) {
@@ -795,17 +795,12 @@ class NovelReader {
             
             const utterance = new SpeechSynthesisUtterance(paragraph.textContent);
             utterance.lang = 'zh-CN';
-            utterance.rate = this.readingRate;
-            utterance.onend = () => readParagraph(index + 1);
-            utterance.onerror = (event) => {
-                console.error('TTS错误:', event);
-                this.stopReading();
-            };
+            utterance.rate = parseFloat(document.getElementById('readingRate').value) || 1.0;
             
-            // 添加：确保语音合成服务处于活动状态
-            if (this.speechSynthesis.paused) {
-                this.speechSynthesis.resume();
-            }
+            utterance.onend = () => {
+                currentIndex++;
+                readParagraph(currentIndex);
+            };
             
             this.speechSynthesis.speak(utterance);
         };
@@ -817,22 +812,23 @@ class NovelReader {
         this.isReading = false;
         if (this.speechSynthesis) {
             this.speechSynthesis.cancel();
-            // 添加：确保语音合成服务重置
-            setTimeout(() => {
-                if (this.speechSynthesis.speaking) {
-                    this.speechSynthesis.cancel();
-                }
-            }, 100);
         }
         this.ttsButton.textContent = '朗读';
+    }
+
+    showError(message) {
+        // 在页面上显示错误信息
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error';
+        errorDiv.style.position = 'fixed';
+        errorDiv.style.top = '50%';
+        errorDiv.style.left = '50%';
+        errorDiv.style.transform = 'translate(-50%, -50%)';
+        errorDiv.style.zIndex = '1000';
+        errorDiv.innerHTML = `<p>${message}</p>`;
         
-        // 添加：释放屏幕唤醒锁
-        if (this.wakeLock) {
-            this.wakeLock.release()
-                .then(() => {
-                    this.wakeLock = null;
-                });
-        }
+        document.body.appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 3000);  // 3秒后自动消失
     }
 }
 
