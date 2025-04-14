@@ -342,6 +342,15 @@ class NovelReader {
                 this.loadFromUrl();
             }
         });
+        
+        // 添加 TTS 按钮事件监听
+        this.ttsButton.addEventListener('click', () => {
+            if (this.isReading) {
+                this.stopReading();
+            } else {
+                this.startReading();
+            }
+        });
     }
 
     loadFromUrl() {
@@ -587,16 +596,6 @@ class NovelReader {
         }
     }
 
-    // 添加 TTS 按钮事件监听
-    this.ttsButton.addEventListener('click', () => {
-        if (this.isReading) {
-            this.stopReading();
-        } else {
-            this.startReading();
-        }
-    });
-    
-    // 添加朗读控制方法
     startReading() {
         if (!this.speechSynthesis) return;
         
