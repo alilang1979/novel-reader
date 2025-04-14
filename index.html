@@ -85,6 +85,30 @@
             margin-top: 20px;
         }
 
+        .tts-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .rate-select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .rate-select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 10px;
+        }
+
         .btn {
             background: var(--primary-color);
             color: white;
@@ -250,9 +274,18 @@
                 <div class="loading">正在加载章节内容...</div>
             </div>
             <div class="controls">
-                <button id="ttsButton" class="btn" disabled>朗读</button>
-                <button id="prevChapter" class="btn" disabled>上一章</button>
-                <button id="nextChapter" class="btn" disabled>下一章</button>
+                <div class="tts-controls">
+                    <button id="ttsButton" class="btn" disabled>朗读</button>
+                    <select id="readingRate" class="rate-select">
+                        <option value="1">正常速度</option>
+                        <option value="1.5">1.5倍速</option>
+                        <option value="2">2倍速</option>
+                    </select>
+                </div>
+                <div class="nav-controls">
+                    <button id="prevChapter" class="btn" disabled>上一章</button>
+                    <button id="nextChapter" class="btn" disabled>下一章</button>
+                </div>
             </div>
         </div>
     </div>
@@ -323,12 +356,16 @@ class NovelReader {
         this.loadUrlButton = document.getElementById('loadUrl');
         this.ttsButton = document.getElementById('ttsButton');
         this.isReading = false;
+        this.readingRate = 1.0;  // 添加：默认语速
         
         // 检查系统 TTS 支持
         if ('speechSynthesis' in window) {
             this.speechSynthesis = window.speechSynthesis;
-            this.ttsButton.disabled = false;  // 默认启用按钮
+            this.ttsButton.disabled = false;
         }
+        
+        this.initializeEventListeners();
+        this.wakeLock = null;  // 添加：屏幕唤醒锁
         
         this.initializeEventListeners();
     }
@@ -348,6 +385,17 @@ class NovelReader {
             if (this.isReading) {
                 this.stopReading();
             } else {
+                this.startReading();
+            }
+        });
+        
+        // 添加语速选择事件监听
+        const rateSelect = document.getElementById('readingRate');
+        rateSelect.addEventListener('change', (e) => {
+            this.readingRate = parseFloat(e.target.value);
+            if (this.isReading) {
+                // 如果正在朗读，重新开始以应用新的语速
+                this.stopReading();
                 this.startReading();
             }
         });
@@ -607,6 +655,13 @@ class NovelReader {
     startReading() {
         if (!this.speechSynthesis) return;
         
+        // 添加：请求屏幕保持唤醒
+        try {
+            this.wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {
+            console.log('无法保持屏幕唤醒:', err);
+        }
+
         const paragraphs = Array.from(document.querySelectorAll('.chapter-content p'));
         if (paragraphs.length === 0) return;
 
@@ -616,7 +671,6 @@ class NovelReader {
         const readParagraph = (index) => {
             if (!this.isReading || index >= paragraphs.length) {
                 if (this.isReading) {
-                    // 当前章节读完，自动加载下一章
                     this.loadNextChapter().then(() => {
                         setTimeout(() => this.startReading(), 1000);
                     });
@@ -629,6 +683,7 @@ class NovelReader {
             
             const utterance = new SpeechSynthesisUtterance(paragraph.textContent);
             utterance.lang = 'zh-CN';
+            utterance.rate = this.readingRate;  // 设置语速
             utterance.onend = () => readParagraph(index + 1);
             
             this.speechSynthesis.speak(utterance);
@@ -641,6 +696,14 @@ class NovelReader {
         this.isReading = false;
         this.speechSynthesis.cancel();
         this.ttsButton.textContent = '朗读';
+        
+        // 添加：释放屏幕唤醒锁
+        if (this.wakeLock) {
+            this.wakeLock.release()
+                .then(() => {
+                    this.wakeLock = null;
+                });
+        }
     }
 }
 
