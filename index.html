@@ -315,7 +315,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>小说阅读器 <span class="version">v1.0.41</span></h1>
+            <h1>小说阅读器 <span class="version">v1.0.6</span></h1>
             <div class="url-input-container">
                 <input type="text" id="chapterUrl" placeholder="请输入章节URL" class="url-input">
                 <button id="loadUrl" class="btn">加载章节</button>
@@ -441,7 +441,6 @@ class NovelReader {
     setupMobileControls() {
         const controls = document.querySelector('.controls');
         const touchArea = document.querySelector('.touch-area');
-        let touchStartY = 0;
         let hideTimeout;
 
         // 点击触摸区域显示控制栏
@@ -474,13 +473,47 @@ class NovelReader {
         };
 
         // 停止朗读时允许控制栏隐藏
+        // 修改：移除对 stopReading 的重写
         const originalStopReading = this.stopReading.bind(this);
         this.stopReading = () => {
             originalStopReading();
-            hideTimeout = setTimeout(() => {
-                controls.classList.remove('show');
-            }, 3000);
+            // 只处理控制栏隐藏，不影响朗读功能
+            if (!this.isReading) {
+                hideTimeout = setTimeout(() => {
+                    controls.classList.remove('show');
+                }, 3000);
+            }
         };
+    }
+
+    stopReading() {
+        this.isReading = false;
+        if (this.speechSynthesis) {
+            // 强制停止所有语音合成
+            this.speechSynthesis.cancel();
+            
+            // 确保完全停止
+            const forceStop = () => {
+                if (this.speechSynthesis.speaking || this.speechSynthesis.pending) {
+                    this.speechSynthesis.cancel();
+                }
+            };
+            
+            // 多次尝试确保停止
+            forceStop();
+            setTimeout(forceStop, 100);
+            setTimeout(forceStop, 300);
+        }
+        
+        // 清除所有段落的高亮
+        document.querySelectorAll('.chapter-content p').forEach(p => {
+            p.style.backgroundColor = '';
+        });
+        
+        this.ttsButton.textContent = '朗读';
+        this.ttsButton.style.backgroundColor = '';
+        // 不重置阅读位置，这样下次点击朗读时可以从上次位置继续
+        // this.currentReadingIndex = 0;
     }
 
     initializeEventListeners() {
@@ -791,7 +824,17 @@ class NovelReader {
             this.ttsButton.textContent = '停止';
             this.ttsButton.style.backgroundColor = '#ff4444';
             
+            // 使用保存的阅读位置或从头开始
             let currentIndex = this.currentReadingIndex || 0;
+            if (currentIndex >= paragraphs.length) {
+                currentIndex = 0;
+            }
+            
+            // 高亮当前选中的段落
+            if (currentIndex > 0) {
+                paragraphs[currentIndex].style.backgroundColor = '#e6f3ff';
+            }
+
             const readParagraph = (index) => {
                 if (!this.isReading) {
                     this.stopReading();
@@ -860,7 +903,7 @@ class NovelReader {
                 
                 utterance.onerror = (event) => {
                     console.error('TTS错误:', event);
-                    if (event.error === 'canceled' && !this.isReading) {
+                    if (event.error === 'interrupted' && !this.isReading) {
                         console.log('用户手动停止朗读');
                         return;
                     }
@@ -870,11 +913,38 @@ class NovelReader {
                         setTimeout(() => readParagraph(index), 300);
                         return;
                     }
+                    
+                    // 修改：优化错误处理逻辑
+                    if (event.error === 'interrupted') {
+                        if (!this.isReading) {
+                            console.log('用户手动停止朗读');
+                            return;
+                        }
+                        
+                        // 添加重试计数
+                        const retryCount = (paragraph.dataset.retryCount || 0) + 1;
+                        if (retryCount <= 3) {  // 最多重试3次
+                            console.log(`第 ${retryCount} 次尝试重新朗读当前段落`);
+                            paragraph.dataset.retryCount = retryCount;
+                            setTimeout(() => {
+                                if (this.isReading) {  // 再次确认是否仍在朗读状态
+                                    readParagraph(index);
+                                }
+                            }, 500 * retryCount);  // 递增延迟时间
+                            return;
+                        }
+                    }
+                    
+                    // 如果重试次数超过限制或是其他错误
                     this.showError(`朗读出错: ${event.error}`);
                     this.stopReading();
                 };
                 
                 try {
+                    // 添加：在朗读前再次检查状态
+                    if (!this.isReading) {
+                        return;
+                    }
                     console.log('准备朗读文本:', text.slice(0, 50) + '...');
                     this.speechSynthesis.speak(utterance);
                 } catch (error) {
@@ -897,39 +967,6 @@ class NovelReader {
             this.showError(`启动朗读失败: ${error.message}`);
             this.stopReading();
         }
-    }
-
-    stopReading() {
-        this.isReading = false;
-        if (this.speechSynthesis) {
-            // 强制停止所有语音合成
-            this.speechSynthesis.cancel();
-            this.speechSynthesis.pause();
-            
-            // 多次尝试确保完全停止
-            const forceStop = () => {
-                if (this.speechSynthesis.speaking || this.speechSynthesis.pending) {
-                    this.speechSynthesis.cancel();
-                    this.speechSynthesis.pause();
-                }
-            };
-            
-            // 立即执行一次
-            forceStop();
-            // 100ms 后再次尝试
-            setTimeout(forceStop, 100);
-            // 500ms 后最后尝试一次
-            setTimeout(forceStop, 500);
-        }
-        
-        // 清除所有段落的高亮
-        document.querySelectorAll('.chapter-content p').forEach(p => {
-            p.style.backgroundColor = '';
-        });
-        
-        this.ttsButton.textContent = '朗读';
-        this.ttsButton.style.backgroundColor = '';
-        this.currentReadingIndex = 0;  // 重置阅读位置
     }
 
     // 添加：状态提示功能
