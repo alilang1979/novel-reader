@@ -265,8 +265,55 @@ class NovelReader {
             "https://api.codetabs.com/v1/proxy?quest="
         ];
         this.currentProxyIndex = 0;
-        this.baseUrl = "https://www.txtwl.com";
-        this.currentChapterUrl = "/article_134_181251.html";
+        
+        // 站点配置，支持扩展
+        this.siteConfigs = [
+            {
+                name: 'xxsy',
+                baseUrl: 'https://www.xxsy.net',
+                urlPattern: /xxsy\.net\/chapter/,
+                selectors: {
+                    title: 'h1, .chapter-title',
+                    content: 'main#content, .chapter-content',
+                    paragraphs: 'p, div.p',
+                    prevChapter: '#r-breadcrumbs + div nav a[href*="/chapter/"], #reader-content nav a[href*="/chapter/"]',
+                    nextChapter: 'a[href*="/chapter/"]'
+                },
+                nextChapterValidator: (link) => {
+                    const href = link.getAttribute('href');
+                    return href.includes('下一章') || link.textContent.includes('下一章');
+                }
+            },
+            {
+                name: 'txtwl',
+                baseUrl: 'https://www.txtwl.com',
+                urlPattern: /txtwl\.com\/article/,
+                selectors: {
+                    title: '.j_chapterName',
+                    content: '.j_readContent',
+                    paragraphs: '.j_readContent',  // 修改：直接使用内容容器
+                    prevChapter: '.chapter-control a:first-child',
+                    nextChapter: '.chapter-control a:last-child'
+                },
+                removeSelectors: ['.admire-wrap', '.report-btn', '.ywskythunderfont'],  // 添加广告移除
+                nextChapterValidator: (link) => true,
+                // 添加内容处理函数
+                contentProcessor: (element) => {
+                    // 移除开头的广告文本
+                    const text = element.innerHTML
+                        .replace(/<a[^>]*>[^<]*<\/a>/g, '')  // 移除所有链接
+                        .replace(/网络小说网[^<]*最新章节！/, '')  // 移除广告文本
+                        .split('<br>')  // 按 br 分割
+                        .map(p => p.trim())  // 清理空白
+                        .filter(p => p && !p.match(/^(&nbsp;|\s)*$/))  // 过滤空段落
+                        .map(p => p.replace(/&nbsp;/g, ''));  // 清理空格符
+                    return text;
+                }
+            }
+        ];
+
+        this.currentConfig = null;
+        this.currentChapterUrl = '';
         this.content = document.getElementById('content');
         this.prevButton = document.getElementById('prevChapter');
         this.nextButton = document.getElementById('nextChapter');
@@ -275,7 +322,6 @@ class NovelReader {
         this.loadUrlButton = document.getElementById('loadUrl');
         
         this.initializeEventListeners();
-        this.loadCurrentChapter();
     }
 
     initializeEventListeners() {
@@ -289,10 +335,75 @@ class NovelReader {
         });
     }
 
+    loadFromUrl() {
+        const url = this.urlInput.value.trim();
+        if (!url) {
+            this.content.innerHTML = `<div class="error"><h3>输入错误</h3><p>请输入有效的章节URL</p></div>`;
+            return;
+        }
+
+        try {
+            let urlObj;
+            if (url.startsWith('http')) {
+                urlObj = new URL(url);
+                const config = this.siteConfigs.find(cfg => cfg.urlPattern.test(urlObj.href));
+                if (!config) {
+                    throw new Error('不支持的网站格式，当前支持：' + 
+                        this.siteConfigs.map(c => c.name).join(', '));
+                }
+                this.currentConfig = config;
+                this.loadChapter(urlObj.href);  // 修改：使用完整URL
+            } else {
+                // 处理相对路径
+                if (url.match(/article_\d+_\d+\.html/)) {
+                    this.currentConfig = this.siteConfigs.find(c => c.name === 'txtwl');
+                    const fullUrl = this.currentConfig.baseUrl + '/' + url.replace(/^\//, '');
+                    console.log('组装的完整URL:', fullUrl);
+                    this.loadChapter(fullUrl);  // 修改：直接传入完整URL
+                } else if (url.startsWith('/chapter/')) {
+                    this.currentConfig = this.siteConfigs.find(c => c.name === 'xxsy');
+                    const fullUrl = this.currentConfig.baseUrl + url;
+                    console.log('组装的完整URL:', fullUrl);
+                    this.loadChapter(fullUrl);  // 修改：直接传入完整URL
+                } else {
+                    throw new Error('无法识别URL格式，请输入完整URL');
+                }
+            }
+        } catch (error) {
+            this.content.innerHTML = `
+                <div class="error">
+                    <h3>URL格式错误</h3>
+                    <p>${error.message}</p>
+                    <div class="error-details">请输入完整的章节URL，例如：
+                        https://www.xxsy.net/chapter/xxx/xxx 或
+                        https://www.txtwl.com/article/xxx/xxx</div>
+                </div>`;
+        }
+    }
+
+    updateNavigationButtons() {
+        // 启用导航按钮
+        this.prevButton.disabled = false;
+        this.nextButton.disabled = false;
+    }
+
     async loadChapter(url, retryCount = 0) {
         this.content.innerHTML = '<div class="loading">正在加载章节内容...</div>';
+        
         try {
-            const fullUrl = url.startsWith('http') ? url : this.baseUrl + url;
+            // 直接使用传入的完整URL
+            const fullUrl = url.startsWith('http') ? url : this.currentConfig.baseUrl + '/' + url.replace(/^\//, '');
+            console.log('请求URL:', fullUrl);
+
+            // 确保在使用 config 之前获取配置
+            const urlObj = new URL(fullUrl);
+            const config = this.siteConfigs.find(cfg => cfg.urlPattern.test(urlObj.href));
+            if (!config) {
+                throw new Error('不支持的网站格式，当前支持：' + 
+                    this.siteConfigs.map(c => c.name).join(', '));
+            }
+            this.currentConfig = config;  // 更新当前配置
+
             const proxyUrl = this.proxyUrls[this.currentProxyIndex];
             const response = await fetch(`${proxyUrl}${encodeURIComponent(fullUrl)}`);
             
@@ -301,35 +412,73 @@ class NovelReader {
             }
             
             const text = await response.text();
+            console.log('获取到的原始HTML长度:', text.length);
+            
             const parser = new DOMParser();
             const doc = parser.parseFromString(text, 'text/html');
             
-            // 提取章节标题
-            const title = doc.querySelector('.j_chapterName')?.textContent || '未知章节';
+            // 使用 this.currentConfig 替代 config
+            console.log('正在查找标题元素:', this.currentConfig.selectors.title);
+            const title = doc.querySelector(this.currentConfig.selectors.title);
+            console.log('找到的标题元素:', title?.outerHTML);
             
-            // 提取正文内容
-            const contentElement = doc.querySelector('.j_readContent');
+            console.log('正在查找内容元素:', this.currentConfig.selectors.content);
+            const contentElement = doc.querySelector(this.currentConfig.selectors.content);
+            console.log('找到的内容元素:', contentElement?.outerHTML);
             
             if (!contentElement) {
-                throw new Error("无法找到正文内容，请检查页面结构");
+                throw new Error(`无法找到正文内容，请检查${this.currentConfig.name}页面结构`);
             }
             
-            // 克隆内容元素以避免修改原始DOM
+            // 处理内容
             const contentClone = contentElement.cloneNode(true);
             
             // 移除不需要的元素
-            const elementsToRemove = contentClone.querySelectorAll('.admire-wrap, .report-btn');
-            elementsToRemove.forEach(el => el.remove());
+            if (config.removeSelectors) {
+                console.log('正在移除以下选择器的元素:', config.removeSelectors);
+                config.removeSelectors.forEach(selector => {
+                    const removed = contentClone.querySelectorAll(selector);
+                    console.log(`移除 ${selector} 的元素数量:`, removed.length);
+                });
+            }
             
+            // 提取段落
+            console.log('正在查找段落元素:', this.currentConfig.selectors.paragraphs);
+            let paragraphs = [];
+            
+            if (this.currentConfig.contentProcessor) {
+                // 使用自定义处理器
+                paragraphs = this.currentConfig.contentProcessor(contentClone);
+            } else {
+                // 使用默认处理方式
+                const allParagraphs = contentClone.querySelectorAll(this.currentConfig.selectors.paragraphs);
+                paragraphs = Array.from(allParagraphs)
+                    .map(p => p.textContent.trim())
+                    .filter(text => text.length > 0);
+            }
+            
+            console.log('过滤后的有效段落数量:', paragraphs.length);
+            if (paragraphs.length > 0) {
+                console.log('第一段内容:', paragraphs[0]);
+                console.log('最后一段内容:', paragraphs[paragraphs.length - 1]);
+            }
+            
+            if (paragraphs.length === 0) {
+                console.log('页面HTML结构:', doc.documentElement.outerHTML);
+                this.currentConfig = null;
+                throw new Error("无法解析章节内容");
+            }
+            
+            // 构建内容HTML时修改这里
             const content = `
-                <h1 class="chapter-title">${title}</h1>
+                <h1 class="chapter-title">${title ? title.textContent : '未知章节'}</h1>
                 <div class="chapter-content">
-                    ${contentClone.innerHTML}
+                    ${paragraphs.map(p => `<p>${p}</p>`).join('')}
                 </div>
             `;
             
             this.content.innerHTML = content;
-            this.currentChapterUrl = url;
+            this.currentChapterUrl = urlObj.pathname;
             this.updateNavigationButtons();
             window.scrollTo(0, 0);
         } catch (error) {
@@ -343,7 +492,9 @@ class NovelReader {
             
             const errorDetails = {
                 message: error.message,
-                url: this.baseUrl + url,
+                url: fullUrl,  // 现在可以安全使用 fullUrl
+                baseUrl: this.currentConfig?.baseUrl || '未知baseUrl',
+                configName: this.currentConfig?.name || '未知站点',
                 timestamp: new Date().toISOString(),
                 userAgent: navigator.userAgent,
                 retryCount: retryCount
@@ -355,6 +506,8 @@ class NovelReader {
                     <p>${error.message}</p>
                     <div class="error-details">
                         请求URL: ${errorDetails.url}
+                        站点配置: ${errorDetails.configName}
+                        基础URL: ${errorDetails.baseUrl}
                         时间: ${errorDetails.timestamp}
                         错误类型: ${error.name}
                         重试次数: ${errorDetails.retryCount}
@@ -364,30 +517,21 @@ class NovelReader {
         }
     }
 
-    loadCurrentChapter() {
-        this.loadChapter(this.currentChapterUrl);
-    }
-
     async loadPreviousChapter() {
+        if (!this.currentConfig) return;
+        
         this.prevButton.disabled = true;
         this.content.innerHTML = '<div class="loading">正在加载上一章...</div>';
         try {
-            const fullUrl = this.currentChapterUrl.startsWith('http') 
-                ? this.currentChapterUrl 
-                : this.baseUrl + this.currentChapterUrl;
-            const proxyUrl = this.proxyUrls[this.currentProxyIndex];
-            const response = await fetch(`${proxyUrl}${encodeURIComponent(fullUrl)}`);
+            const response = await fetch(`${this.proxyUrls[this.currentProxyIndex]}${encodeURIComponent(this.currentConfig.baseUrl + this.currentChapterUrl)}`);
             const text = await response.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(text, 'text/html');
             
-            console.log('正在查找上一章链接...');
-            const prevLink = doc.querySelector('.chapter-control a:first-child');
-            if (prevLink && prevLink.getAttribute('href') && !prevLink.getAttribute('href').startsWith('javascript:')) {
-                console.log('找到上一章链接:', prevLink.getAttribute('href'));
+            const prevLink = doc.querySelector(this.currentConfig.selectors.prevChapter);
+            if (prevLink && prevLink.getAttribute('href')) {
                 this.loadChapter(prevLink.getAttribute('href'));
             } else {
-                console.log('没有找到有效的上一章链接');
                 this.prevButton.disabled = true;
                 this.content.innerHTML = '<div class="error"><h3>无法加载上一章</h3><p>已经是第一章或无法找到上一章链接</p></div>';
             }
@@ -399,25 +543,25 @@ class NovelReader {
     }
 
     async loadNextChapter() {
+        if (!this.currentConfig) return;
+        
         this.nextButton.disabled = true;
         this.content.innerHTML = '<div class="loading">正在加载下一章...</div>';
         try {
-            const fullUrl = this.currentChapterUrl.startsWith('http') 
-                ? this.currentChapterUrl 
-                : this.baseUrl + this.currentChapterUrl;
-            const proxyUrl = this.proxyUrls[this.currentProxyIndex];
-            const response = await fetch(`${proxyUrl}${encodeURIComponent(fullUrl)}`);
+            const response = await fetch(`${this.proxyUrls[this.currentProxyIndex]}${encodeURIComponent(this.currentConfig.baseUrl + this.currentChapterUrl)}`);
             const text = await response.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(text, 'text/html');
             
-            console.log('正在查找下一章链接...');
-            const nextLink = doc.querySelector('.chapter-control a:last-child');
-            if (nextLink && nextLink.getAttribute('href') && !nextLink.getAttribute('href').startsWith('javascript:')) {
-                console.log('找到下一章链接:', nextLink.getAttribute('href'));
-                this.loadChapter(nextLink.getAttribute('href'));
+            const nextLink = doc.querySelector(this.currentConfig.selectors.nextChapter);
+            if (nextLink && nextLink.getAttribute('href')) {
+                if (this.currentConfig.nextChapterValidator(nextLink)) {
+                    this.loadChapter(nextLink.getAttribute('href'));
+                } else {
+                    this.nextButton.disabled = true;
+                    this.content.innerHTML = '<div class="error"><h3>无法加载下一章</h3><p>未找到有效的下一章链接</p></div>';
+                }
             } else {
-                console.log('没有找到有效的下一章链接');
                 this.nextButton.disabled = true;
                 this.content.innerHTML = '<div class="error"><h3>无法加载下一章</h3><p>已经是最后一章或无法找到下一章链接</p></div>';
             }
@@ -425,35 +569,6 @@ class NovelReader {
             console.error('获取下一章链接失败:', error);
             this.nextButton.disabled = true;
             this.content.innerHTML = `<div class="error"><h3>加载失败</h3><p>获取下一章链接时出错: ${error.message}</p></div>`;
-        }
-    }
-
-    updateNavigationButtons() {
-        this.prevButton.disabled = false;
-        this.nextButton.disabled = false;
-    }
-
-    loadFromUrl() {
-        const url = this.urlInput.value.trim();
-        if (!url) {
-            this.content.innerHTML = `<div class="error"><h3>输入错误</h3><p>请输入有效的章节URL</p></div>`;
-            return;
-        }
-
-        try {
-            const urlObj = new URL(url);
-            if (!urlObj.pathname.includes('/article_')) {
-                throw new Error('无效的章节URL，URL必须包含 /article_');
-            }
-            const chapterPath = urlObj.pathname + (urlObj.search || '');
-            this.loadChapter(chapterPath);
-        } catch (error) {
-            this.content.innerHTML = `
-                <div class="error">
-                    <h3>URL格式错误</h3>
-                    <p>${error.message}</p>
-                    <div class="error-details">请输入完整的章节URL，例如：https://www.txtwl.com/article_xxx_xxx.html</div>
-                </div>`;
         }
     }
 }
